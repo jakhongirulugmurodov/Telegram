@@ -1,0 +1,86 @@
+# Qo'rg'on — 0a bosqichi: o'zgartirilmagan fork'ni GitHub Actions'da yig'ib,
+# o'rnatiladigan APK olish. Maqsad: build zanjiri ishlashini isbotlash.
+name: Qo'rg'on APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [qorgon]
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+
+    steps:
+      - name: Kodni olish (submodullar bilan)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Diskda joy bo'shatish
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup \
+                      /usr/local/share/boost /opt/hostedtoolcache/CodeQL \
+                      "$AGENT_TOOLSDIRECTORY/Ruby" /usr/local/lib/android/sdk/ndk || true
+          sudo apt-get clean
+          df -h /
+
+      - name: JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: ''
+
+      - name: SDK komponentlari (Dockerfile'dagi aniq versiyalar)
+        run: |
+          sdkmanager --install \
+            "platforms;android-36" \
+            "build-tools;36.0.0" \
+            "ndk;27.2.12479018" \
+            "cmake;3.22.1"
+
+      - name: Gradle keshi
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle', 'gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-${{ runner.os }}-
+
+      - name: Native (CMake) keshi
+        uses: actions/cache@v4
+        with:
+          path: |
+            TMessagesProj/.cxx
+          key: cxx-${{ runner.os }}-${{ hashFiles('TMessagesProj/jni/CMakeLists.txt', 'gradle.properties') }}
+          restore-keys: cxx-${{ runner.os }}-
+
+      - name: APK yig'ish
+        run: |
+          chmod +x ./gradlew
+          ./gradlew :TMessagesProj_AppStandalone:assembleAfatStandalone \
+            --no-daemon --stacktrace
+
+      - name: Natijani nomlash
+        run: |
+          SRC=TMessagesProj_AppStandalone/build/outputs/apk/afat/standalone/app.apk
+          ls -la "$(dirname "$SRC")"
+          mkdir -p out
+          cp "$SRC" "out/qorgon-$(date +%Y%m%d)-${GITHUB_SHA::7}.apk"
+          ls -la out
+
+      - name: APK'ni yuklash
+        uses: actions/upload-artifact@v4
+        with:
+          name: qorgon-apk
+          path: out/*.apk
+          retention-days: 30

@@ -138,6 +138,8 @@ android {
         minSdkVersion 23
         targetSdkVersion 36
 
+        ndk { abiFilters(*QORGON_ABIS.split(",")) }
+
         vectorDrawables.generatedDensities = ['mdpi', 'hdpi', 'xhdpi', 'xxhdpi']
 
         multiDexEnabled true
