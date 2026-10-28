@@ -1098,6 +1098,11 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
     }
 
     private void checkUi_callTabVisible(boolean callTabsVisible, boolean animated) {
+        // Qo'rg'on: bu metod Sozlamalar va Qo'ng'iroqlar tablarini qayta
+        // ko'rsatib yuboradi va createView'dagi yashirishni bekor qiladi.
+        if (Allowlist.ENABLED) {
+            return;
+        }
         if (tabsView != null) {
             tabsView.setViewVisible(tabs[INDEX_SETTINGS], !callTabsVisible, animated);
             tabsView.setViewVisible(tabs[INDEX_CALLS], callTabsVisible, animated);

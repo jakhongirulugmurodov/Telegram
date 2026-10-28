@@ -3221,6 +3221,11 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         ActionBarMenu menu = actionBar.createMenu();
         menu.setTranslationX(-dp(5));
         searchItem = menu.addItem(0, R.drawable.outline_header_search).setIsSearchField(true, false);
+        // Qo'rg'on: qidiruv butun Telegram bo'ylab ishlaydi — istalgan odam,
+        // kanal va guruhni topadi. Lupa belgisi olib tashlanadi.
+        if (Allowlist.ENABLED) {
+            searchItem.setVisibility(android.view.View.GONE);
+        }
         searchItem.setOnClickListener(v -> {
             showSearch(true, false, true);
             fragmentSearchFieldWatcher.toggleSearch(true);
@@ -3439,7 +3444,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         });
         fragmentSearchFieldWatcher.setDoNotCloseAfterFieldEmpty();
 
-        if (initialDialogsType == DIALOGS_TYPE_DEFAULT) {
+        // Qo'rg'on: uch nuqta menyusi yangi guruh va yangi kanal oynalariga
+        // olib boradi, ular esa butun kontaktlar ro'yxatini ochadi.
+        if (initialDialogsType == DIALOGS_TYPE_DEFAULT && !Allowlist.ENABLED) {
             optionsItem = menu.addItem(4, R.drawable.ic_ab_other);
             optionsItem.setContentDescription(LocaleController.getString(R.string.AccDescrMoreOptions));
             optionsItem.setOnClickListener(v -> {
@@ -4738,10 +4745,17 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         floatingButtonStories.setContentDescription(getString(R.string.StoryPrivacyButtonPost));
         floatingButtonStories.setImageResource(R.drawable.outline_fab_story_24);
         floatingButtonStories.setOnClickListener(v -> openStoriesRecorder());
-        contentView.addView(floatingButtonStories, FragmentFloatingButton.createSubButtonLayoutParams());
+        // Qo'rg'on: tugmalar obyekt sifatida qoladi (boshqa kod ularga murojaat
+        // qiladi), lekin ekranga qo'shilmaydi. setVisibility'dan ishonchliroq:
+        // keyingi kod ularni qayta ko'rsata olmaydi.
+        if (!Allowlist.ENABLED) {
+            contentView.addView(floatingButtonStories, FragmentFloatingButton.createSubButtonLayoutParams());
+        }
 
         floatingButton3 = new FragmentFloatingButton(context, resourceProvider);
-        contentView.addView(floatingButton3, FragmentFloatingButton.createDefaultLayoutParams());
+        if (!Allowlist.ENABLED) {
+            contentView.addView(floatingButton3, FragmentFloatingButton.createDefaultLayoutParams());
+        }
         floatingButton3.setOnClickListener(v -> {
             if (parentLayout != null && parentLayout.isInPreviewMode()) {
                 finishPreviewFragment();
@@ -5339,7 +5353,10 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             contentView.addView(animatedStatusView, LayoutHelper.createFrame(20, 20, Gravity.LEFT | Gravity.TOP));
         }
         if (fragmentSearchField != null) {
-            contentView.addView(fragmentSearchField, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 48, Gravity.TOP, 7, -2, 7, 0));
+            // Qo'rg'on: "Search Chats" paneli ham qo'shilmaydi.
+            if (!Allowlist.ENABLED) {
+                contentView.addView(fragmentSearchField, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 48, Gravity.TOP, 7, -2, 7, 0));
+            }
         }
 
 
