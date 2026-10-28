@@ -6,6 +6,8 @@ on:
   workflow_dispatch:
   push:
     branches: [qorgon]
+    paths-ignore:
+      - '**.md'
 
 jobs:
   apk:
@@ -63,6 +65,34 @@ jobs:
             TMessagesProj/.cxx
           key: cxx-${{ runner.os }}-${{ hashFiles('TMessagesProj/jni/CMakeLists.txt', 'gradle.properties') }}
           restore-keys: cxx-${{ runner.os }}-
+
+      - name: Qo'rg'on API kalitini qo'yish
+        env:
+          QORGON_APP_ID: ${{ secrets.QORGON_APP_ID }}
+          QORGON_APP_HASH: ${{ secrets.QORGON_APP_HASH }}
+        run: |
+          if [ -z "$QORGON_APP_ID" ] || [ -z "$QORGON_APP_HASH" ]; then
+            echo "::warning::QORGON_APP_ID / QORGON_APP_HASH secret'lari yo'q."
+            echo "::warning::Upstream'ning dummy kaliti bilan yig'iladi — faqat shaxsiy sinov uchun, oilaga tarqatmang."
+            exit 0
+          fi
+          python3 - <<'PY'
+          import os, re, pathlib
+          p = pathlib.Path("TMessagesProj/src/main/java/org/telegram/messenger/BuildVars.java")
+          s = p.read_text()
+          app_id = os.environ["QORGON_APP_ID"].strip()
+          app_hash = os.environ["QORGON_APP_HASH"].strip()
+          assert app_id.isdigit(), "QORGON_APP_ID butun son bo'lishi kerak"
+          assert re.fullmatch(r"[0-9a-fA-F]{32}", app_hash), "QORGON_APP_HASH 32 ta hex belgi bo'lishi kerak"
+          s, n1 = re.subn(r"public static int APP_ID = \d+;",
+                          "public static int APP_ID = %s;" % app_id, s, count=1)
+          s, n2 = re.subn(r'public static String APP_HASH = "[^"]*";',
+                          'public static String APP_HASH = "%s";' % app_hash, s, count=1)
+          assert n1 == 1 and n2 == 1, "BuildVars.java kutilgan shaklda emas"
+          p.write_text(s)
+          print("APP_ID qo'yildi:", app_id)
+          print("APP_HASH qo'yildi: (yashirin)")
+          PY
 
       - name: APK yig'ish
         run: |
