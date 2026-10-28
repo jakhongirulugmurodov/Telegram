@@ -68,11 +68,13 @@ jobs:
 
       - name: Qo'rg'on API kalitini qo'yish
         env:
-          QORGON_APP_ID: ${{ secrets.QORGON_APP_ID }}
+          # api_id maxfiy emas: u tarqatilgan har bir APK ichida ochiq turadi.
+          # Telegram faqat api_hash'ni yashirishni talab qiladi.
+          QORGON_APP_ID: "34749045"
           QORGON_APP_HASH: ${{ secrets.QORGON_APP_HASH }}
         run: |
-          if [ -z "$QORGON_APP_ID" ] || [ -z "$QORGON_APP_HASH" ]; then
-            echo "::warning::QORGON_APP_ID / QORGON_APP_HASH secret'lari yo'q."
+          if [ -z "$QORGON_APP_HASH" ]; then
+            echo "::warning::QORGON_APP_HASH secret'i yo'q."
             echo "::warning::Upstream'ning dummy kaliti bilan yig'iladi — faqat shaxsiy sinov uchun, oilaga tarqatmang."
             exit 0
           fi
