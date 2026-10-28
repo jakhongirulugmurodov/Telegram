@@ -32,6 +32,7 @@ import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager.widget.ViewPager;
 
+import org.telegram.messenger.Allowlist;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.BuildVars;
 import org.telegram.messenger.ChatObject;
@@ -1632,7 +1633,11 @@ public class DialogsAdapter extends RecyclerListView.SelectionAdapter implements
             return;
         }
 
-        if (!hasHints && dialogsType == 0 && folderId == 0 && messagesController.isDialogsEndReached(folderId) && !forceUpdatingContacts) {
+        // Qo'rg'on: chat ro'yxati qisqargani uchun Telegram "mana kontaktlaringiz"
+        // taklifini chizadi va u ruxsatsiz odamlarni ochib qo'yadi. Butunlay o'chiriladi.
+        if (Allowlist.ENABLED) {
+            onlineContacts = null;
+        } else if (!hasHints && dialogsType == 0 && folderId == 0 && messagesController.isDialogsEndReached(folderId) && !forceUpdatingContacts) {
             if (messagesController.getAllFoldersDialogsCount() <= 10 && ContactsController.getInstance(currentAccount).doneLoadingContacts && !ContactsController.getInstance(currentAccount).contacts.isEmpty()) {
                 onlineContacts = new ArrayList<>(ContactsController.getInstance(currentAccount).contacts);
                 long selfId = UserConfig.getInstance(currentAccount).clientUserId;

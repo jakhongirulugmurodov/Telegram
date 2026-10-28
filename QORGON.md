@@ -146,3 +146,22 @@ keshidan o‘qiladi, chunki filtr allaqachon yuklangan dialoglar ustida ishlaydi
 - `prune()` dialogni xotiradagi ro‘yxatdan olib tashlaydi. 2-bosqichda
   ro‘yxat real vaqtda o‘zgarganda, chatni qaytarish uchun dialoglarni
   qayta yuklash kerak bo‘ladi.
+
+### Birinchi telefon sinovidan keyin yopilgan teshiklar
+
+Sinov ko‘rsatdiki, chat ro‘yxatini filtrlash yetarli emas — bir nechta joy
+dialoglar ro‘yxatidan mustaqil chiziladi:
+
+| Teshik | Nima ko‘rinardi | Yopilgan joy |
+|---|---|---|
+| Stories qatori | Ruxsatsiz odamlarning ismi, rasmi va storysi | `StoriesController.fixDeletedAndNonContactsStories()` |
+| «Your contacts on Telegram» | Butun kontaktlar ro‘yxati, bosilsa chat ochilardi | `DialogsAdapter` — filtr yoqilganda `onlineContacts = null` |
+| Papka tablari | `All 18`, `Manbaalar 6` — yashirilgan chatlar soni | `DialogsActivity.updateFilterTabs()` — tablar chizilmaydi |
+| Ilova belgisi va umumiy hisob | 18 ta o‘qilmagan | `MessagesStorage.getMainUnreadCount()`, `NotificationsController.getTotalAllUnreadCount()` → 0 |
+
+Papkalar ichidagi ro‘yxat sinovda bo‘sh chiqdi — demak `sortDialogs()`
+filtri papkalarni ham qamrab olgan, alohida tuzatish kerak bo‘lmadi.
+
+Narxi: ruxsat berilgan chatlarning o‘qilmagan belgilari ham ko‘rinmaydi.
+2-bosqichda oq ro‘yxat dinamik bo‘lgach, faqat ruxsatlilar bo‘yicha
+to‘g‘ri hisob qo‘shiladi.

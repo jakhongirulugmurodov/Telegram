@@ -167,6 +167,13 @@ public class MessagesStorage extends BaseController {
     }
 
     public int getMainUnreadCount() {
+        // Qo'rg'on: umumiy o'qilmaganlar soni yashirilgan chatlarni ham sanaydi,
+        // ya'ni raqamning o'zi "menda ko'rinmaydigan chatlar bor" deb aytib turadi.
+        // Filtr yoqilganda nol qaytariladi. To'g'ri hisob 2-bosqichda, oq ro'yxat
+        // dinamik bo'lgach qo'shiladi.
+        if (Allowlist.ENABLED) {
+            return 0;
+        }
         return mainUnreadCount;
     }
 

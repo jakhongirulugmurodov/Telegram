@@ -16,6 +16,7 @@ import org.telegram.SQLite.SQLiteCursor;
 import org.telegram.SQLite.SQLiteDatabase;
 import org.telegram.SQLite.SQLitePreparedStatement;
 import org.telegram.messenger.AccountInstance;
+import org.telegram.messenger.Allowlist;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.BuildVars;
@@ -220,6 +221,13 @@ public class StoriesController {
             TL_stories.PeerStories userStories = list.get(k);
             long dialogId = DialogObject.getPeerDialogId(userStories.peer);
             boolean removed = false;
+            // Qo'rg'on: ruxsatsiz odamning storysi ko'rinmaydi. Storylar chat
+            // ro'yxatidan alohida yuklanadi, shuning uchun filtr shu yerda ham kerak.
+            if (!Allowlist.isAllowed(currentAccount, dialogId)) {
+                list.remove(k);
+                k--;
+                continue;
+            }
             if (dialogId > 0) {
                 TLRPC.User user = MessagesController.getInstance(currentAccount).getUser(dialogId);
                 if (user != null && !isContactOrService(user)) {

@@ -97,6 +97,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager.widget.ViewPager;
 
 import org.telegram.messenger.AccountInstance;
+import org.telegram.messenger.Allowlist;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.AnimationNotificationsLocker;
 import org.telegram.messenger.ApplicationLoader;
@@ -6858,7 +6859,10 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             filterOptions = null;
         }
         final ArrayList<MessagesController.DialogFilter> filters = getMessagesController().getDialogFilters();
-        if (filters.size() > 1) {
+        // Qo'rg'on: papka tablari yashirilgan chatlar sonini oshkor qiladi
+        // ("All 18", "Manbaalar 6"). Filtr yoqilganda tablar umuman chizilmaydi —
+        // Telegram'ning "papka yo'q" yo'li ishlatiladi.
+        if (filters.size() > 1 && !Allowlist.ENABLED) {
             if (force || filterTabsView.getVisibility() != View.VISIBLE) {
                 boolean animatedUpdateItems = animated;
                 if (filterTabsView.getVisibility() != View.VISIBLE) {

@@ -1787,6 +1787,11 @@ public class NotificationsController extends BaseController implements Notificat
     }
 
     private int getTotalAllUnreadCount() {
+        // Qo'rg'on: ilova belgisidagi (launcher badge) raqam ham yashirilgan
+        // chatlarni sanaydi. Filtr yoqilganda belgi chizilmaydi.
+        if (Allowlist.ENABLED) {
+            return 0;
+        }
         int count = 0;
         for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) {
             if (!UserConfig.getInstance(a).isClientActivated()) {
