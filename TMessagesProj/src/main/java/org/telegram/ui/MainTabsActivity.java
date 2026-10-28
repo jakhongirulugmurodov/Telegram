@@ -36,6 +36,7 @@ import androidx.core.graphics.Insets;
 import androidx.core.math.MathUtils;
 import androidx.core.view.WindowInsetsCompat;
 
+import org.telegram.messenger.Allowlist;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.BuildConfig;
@@ -349,7 +350,11 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
             });
 
             tabsView.addView(tabs[index]);
-            tabsView.setViewVisible(view, true, false);
+            // Qo'rg'on: faqat "Chatlar" qoladi. Kontaktlar butun kontaktlar
+            // ro'yxatini ochadi, Sozlamalar akkauntdan chiqish va ikkinchi
+            // akkaunt qo'shish yo'lini beradi, Profil esa akkaunt almashtiradi.
+            final boolean qorgonHidden = Allowlist.ENABLED && index != INDEX_CHATS;
+            tabsView.setViewVisible(view, !qorgonHidden, false);
         }
         checkUi_callTabVisible(getUserConfig().showCallsTab, false);
 
@@ -768,6 +773,12 @@ public class MainTabsActivity extends ViewPagerActivity implements NotificationC
 
     @Override
     protected int getFragmentsCount() {
+        // Qo'rg'on: tugmani yashirish yetarli emas — sahifalar o'rnida qolsa,
+        // ekranni chapga surib Kontaktlar va Sozlamalarga o'tib bo'ladi.
+        // Shuning uchun faqat bitta sahifa (Chatlar) qoldiriladi.
+        if (Allowlist.ENABLED) {
+            return 1;
+        }
         return TABS_COUNT;
     }
 
