@@ -75,3 +75,38 @@ yozgandan keyin emas, hozir bilish kerak.
 
 Upstream GPL-2.0. Fork ham shunday: public repo, manba ochiq.
 Ilova nomida va logotipida «Telegram» ishlatilmaydi.
+
+---
+
+## Kod razvedkasi (v13.1.1 kodida tasdiqlangan)
+
+Filtr qo‘yiladigan joylar. Qator raqamlari shu versiyaga tegishli — upstream
+merge’idan keyin qayta tekshiriladi.
+
+| Joy | Fayl · qator |
+|---|---|
+| Chat ro‘yxati (yagona tor joy) | `MessagesController.sortDialogs()` · 22373; `allDialogs` qayta yig‘iladi · 2386 |
+| Kiruvchi xabar | `MessagesController.processUpdates()` · 17871 |
+| Arxivlash (tayyor metod) | `MessagesController.addDialogToFolder()` · 12372 → `TL_folders_editPeerFolders` |
+| Ovozsiz qilish (tayyor metod) | `NotificationsController.muteDialog()` · 6325 |
+| Bildirishnoma | `NotificationsController.processNewMessages()` · 1076 |
+| Kiruvchi qo‘ng‘iroq | `MessagesController` · 20488, `call instanceof TL_phone.phoneCallRequested` |
+| Qidiruv | `DialogsSearchAdapter.searchDialogs()` · 1098 |
+| t.me havolalari | `LaunchActivity.runLinkRequest()` · 4037 |
+| Kontaktlar | `ui/ContactsActivity.java` |
+| API kaliti | `BuildVars.java` · 29 |
+
+### Diqqat: APP_ID = 4
+
+`BuildVars.java`da `APP_ID = 4`, `APP_HASH` esa Telegram’ning **rasmiy Android
+ilovasiga tegishli** qiymat. Upstream buni reproducible build uchun qoldirgan.
+
+0a bosqichida (faqat o‘z telefonida sinash) shu bilan ishlayveradi, lekin
+**oila a’zolariga tarqatishdan oldin albatta o‘z `api_id` bilan almashtiriladi.**
+Bu 0b bosqichi va u ixtiyoriy emas.
+
+### Kutilayotgan ish shakli
+
+Bitta `Allowlist` klassi, har bir yuqoridagi joyda bitta `isAllowed(peerId)`
+chaqiruvi. Upstream bu fayllarni tez-tez o‘zgartiradi, shuning uchun
+o‘zgarishlar qancha kichik bo‘lsa, 5-bosqichdagi merge shuncha oson.
