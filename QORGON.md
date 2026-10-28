@@ -110,3 +110,39 @@ Bu 0b bosqichi va u ixtiyoriy emas.
 Bitta `Allowlist` klassi, har bir yuqoridagi joyda bitta `isAllowed(peerId)`
 chaqiruvi. Upstream bu fayllarni tez-tez o‘zgartiradi, shuning uchun
 o‘zgarishlar qancha kichik bo‘lsa, 5-bosqichdagi merge shuncha oson.
+
+---
+
+## 1-bosqich: kodda yozilgan oq ro‘yxat
+
+Yangi fayl: `TMessagesProj/src/main/java/org/telegram/messenger/Allowlist.java`
+
+- `ENABLED` — filtrni butunlay o‘chirish bayrog‘i.
+- `ALLOWED` — ruxsat berilgan chatlar. Uch shaklni qabul qiladi:
+  `@username`, raqamli dialog ID, yoki chatning aniq sarlavhasi.
+- Doim ochiq qoladiganlar: **Saved Messages** va **777000** (Telegram
+  xizmat akkaunti — kirish kodlari va xavfsizlik ogohlantirishlari shu
+  yerdan keladi, uni yashirish akkauntdan ayrilish xavfini tug‘diradi).
+- `ALLOWED` bo‘sh bo‘lsa filtr ishlamaydi — bo‘sh ro‘yxat bilan hamma
+  chatni yashirish ilovani ishlatib bo‘lmas holga keltiradi.
+
+Ulangan joylar:
+
+| Nima | Qayerda |
+|---|---|
+| Chat ro‘yxati | `MessagesController.sortDialogs()` boshida `Allowlist.prune()` |
+| Bildirishnoma | `NotificationsController.processNewMessages()` |
+| Kiruvchi qo‘ng‘iroq | `MessagesController`, `phoneCallRequested` shoxi |
+
+Tarmoqqa qo‘shimcha so‘rov ketmaydi: username va sarlavha ilovaning o‘z
+keshidan o‘qiladi, chunki filtr allaqachon yuklangan dialoglar ustida ishlaydi.
+
+### Ma’lum cheklovlar
+
+- Yashirilgan chatning ID va username’i jurnalga yoziladi, lekin
+  `BuildVars.LOGS_ENABLED` standalone build’da `false`. Ya’ni ID’larni
+  jurnaldan topish faqat debug build’da ishlaydi. Haqiqiy yechim —
+  2-bosqichdagi admin jurnali.
+- `prune()` dialogni xotiradagi ro‘yxatdan olib tashlaydi. 2-bosqichda
+  ro‘yxat real vaqtda o‘zgarganda, chatni qaytarish uchun dialoglarni
+  qayta yuklash kerak bo‘ladi.

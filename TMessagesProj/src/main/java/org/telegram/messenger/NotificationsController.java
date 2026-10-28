@@ -1104,6 +1104,17 @@ public class NotificationsController extends BaseController implements Notificat
             }
         }
 
+        // Qo'rg'on: ruxsatsiz chatdan kelgan xabar bildirishnoma bermaydi —
+        // na ovoz, na belgi. Xabarning o'zi serverda turaveradi.
+        if (messageObjects != null) {
+            for (int i = messageObjects.size() - 1; i >= 0; i--) {
+                MessageObject messageObject = messageObjects.get(i);
+                if (messageObject != null && !Allowlist.isAllowed(currentAccount, messageObject.getDialogId())) {
+                    messageObjects.remove(i);
+                }
+            }
+        }
+
         if (messageObjects.isEmpty()) {
             if (countDownLatch != null) {
                 countDownLatch.countDown();

@@ -20486,6 +20486,13 @@ public class MessagesController extends BaseController implements NotificationCe
                             voipDebug.done(p.id, p.need_debug);
                         }
                         if (call instanceof TL_phone.phoneCallRequested) {
+                            // Qo'rg'on: ruxsatsiz odamning qo'ng'irog'i jiringlamaydi.
+                            if (!Allowlist.isAllowed(currentAccount, call.admin_id)) {
+                                if (BuildVars.LOGS_ENABLED) {
+                                    FileLog.d("qorgon: qo'ng'iroq e'tiborsiz qoldirildi, admin_id=" + call.admin_id);
+                                }
+                                continue;
+                            }
                             if (call.date + callRingTimeout / 1000 < getConnectionsManager().getCurrentTime()) {
                                 if (BuildVars.LOGS_ENABLED) {
                                     FileLog.d("ignoring too old call");
@@ -22374,6 +22381,10 @@ public class MessagesController extends BaseController implements NotificationCe
         if (chatsDict == null && ApplicationLoader.mainInterfacePaused) {
             return;
         }
+        // Qo'rg'on: oq ro'yxatda yo'q dialoglar shu yerda olib tashlanadi.
+        // allDialogs faqat shu metodda qayta yig'ilgani uchun, bu yagona
+        // tor joy — pastdagi hamma ro'yxat shundan keyin hosil bo'ladi.
+        Allowlist.prune(currentAccount, allDialogs);
         dialogsServerOnly.clear();
         dialogsCanAddUsers.clear();
         dialogsMyGroups.clear();
