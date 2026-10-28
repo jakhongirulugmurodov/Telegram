@@ -21982,6 +21982,8 @@ public class MessagesController extends BaseController implements NotificationCe
                 getNotificationCenter().postNotificationName(NotificationCenter.replaceMessagesObjects, dialogId, gramMessages);
             }
         }
+        // Qo'rg'on: boshqaruv boti buyruqlari va "begona yozdi" jurnali.
+        QorgonControl.onNewMessages(currentAccount, dialogId, messages, scheduled);
         getNotificationCenter().postNotificationName(NotificationCenter.didReceiveNewMessages, dialogId, messages, scheduled, mode);
 
         if (lastMessage == null || scheduled) {
@@ -22377,6 +22379,30 @@ public class MessagesController extends BaseController implements NotificationCe
     }
     
     
+    /**
+     * Qo'rg'on: oq ro'yxat o'zgarganda chaqiriladi. prune() yashirilgan
+     * dialoglarni xotiradagi ro'yxatdan olib tashlagani uchun, ularni
+     * dialogs_dict dan qayta yig'ib, filtrdan qayta o'tkazamiz.
+     */
+    public void qorgonRebuildDialogs() {
+        AndroidUtilities.runOnUIThread(() -> {
+            try {
+                allDialogs.clear();
+                for (int a = 0, size = dialogs_dict.size(); a < size; a++) {
+                    TLRPC.Dialog dialog = dialogs_dict.valueAt(a);
+                    if (dialog == null || deletingDialogs.indexOfKey(dialog.id) >= 0) {
+                        continue;
+                    }
+                    allDialogs.add(dialog);
+                }
+                sortDialogs(null);
+                getNotificationCenter().postNotificationName(NotificationCenter.dialogsNeedReload);
+            } catch (Exception e) {
+                FileLog.e(e);
+            }
+        });
+    }
+
     public void sortDialogs(LongSparseArray<TLRPC.Chat> chatsDict) {
         if (chatsDict == null && ApplicationLoader.mainInterfacePaused) {
             return;
@@ -22385,6 +22411,7 @@ public class MessagesController extends BaseController implements NotificationCe
         // allDialogs faqat shu metodda qayta yig'ilgani uchun, bu yagona
         // tor joy — pastdagi hamma ro'yxat shundan keyin hosil bo'ladi.
         Allowlist.prune(currentAccount, allDialogs);
+        QorgonControl.ensureStarted(currentAccount);
         dialogsServerOnly.clear();
         dialogsCanAddUsers.clear();
         dialogsMyGroups.clear();

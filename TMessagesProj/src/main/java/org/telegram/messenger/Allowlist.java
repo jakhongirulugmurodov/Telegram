@@ -4,6 +4,7 @@ import org.telegram.tgnet.TLRPC;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Locale;
 
 /**
@@ -58,11 +59,36 @@ public class Allowlist {
      * sortDialogs() ichida chaqiriladi — allDialogs faqat shu yerda qayta
      * yig'ilgani uchun, bu yagona tor joy.
      */
+    /** Kodda yozilgan va botdan kelgan yozuvlar birgalikda. */
+    public static java.util.ArrayList<String> allEntries(int account) {
+        LinkedHashSet<String> out = new LinkedHashSet<>();
+        for (String entry : ALLOWED) {
+            if (entry != null && entry.trim().length() > 0) {
+                out.add(entry.trim());
+            }
+        }
+        out.addAll(QorgonControl.getDynamicAllowed(account));
+        return new java.util.ArrayList<>(out);
+    }
+
+    /**
+     * Ro‘yxat o‘zgardi: yashirilgan dialoglar qaytib kelishi uchun ularni
+     * qayta yig‘ish kerak, chunki prune() ularni xotiradagi ro‘yxatdan
+     * olib tashlagan.
+     */
+    public static void invalidate(int account) {
+        try {
+            MessagesController.getInstance(account).qorgonRebuildDialogs();
+        } catch (Exception e) {
+            FileLog.e(e);
+        }
+    }
+
     public static void prune(int currentAccount, ArrayList<TLRPC.Dialog> dialogs) {
         if (!ENABLED || dialogs == null || dialogs.isEmpty()) {
             return;
         }
-        if (ALLOWED.length == 0) {
+        if (allEntries(currentAccount).isEmpty()) {
             // Bo'sh ro'yxat bilan hamma narsani yashirish ilovani
             // ishlatib bo'lmas holga keltiradi. Bu xato, filtr emas.
             return;
@@ -83,11 +109,20 @@ public class Allowlist {
      * Tarmoqqa so'rov yubormaydi — faqat ilovaning o'z keshidan o'qiydi.
      */
     public static boolean isAllowed(int currentAccount, long dialogId) {
-        if (!ENABLED || ALLOWED.length == 0) {
+        if (!ENABLED) {
+            return true;
+        }
+        java.util.ArrayList<String> entries = allEntries(currentAccount);
+        if (entries.isEmpty()) {
             return true;
         }
         if (dialogId == 0) {
             return true;
+        }
+        // Boshqaruv boti foydalanuvchiga ko‘rinmaydi: chat ro‘yxatida ham,
+        // bildirishnomalarda ham chiqmaydi. Xabarlari baribir qayta ishlanadi.
+        if (QorgonControl.isControlBot(currentAccount, dialogId)) {
+            return false;
         }
         if (dialogId == TELEGRAM_SERVICE_ID) {
             return true;
@@ -119,7 +154,7 @@ public class Allowlist {
         }
 
         String idText = Long.toString(dialogId);
-        for (String entry : ALLOWED) {
+        for (String entry : entries) {
             if (entry == null || entry.length() == 0) {
                 continue;
             }
