@@ -64,14 +64,26 @@ botga o‘zi `/start` yuboradi va panelda paydo bo‘ladi.
 **Begona yozganda.** Botdan xabar keladi: kim va qachon. Ostida «Ruxsat
 berish» tugmasi. Xabar matni hech qachon yuborilmaydi.
 
-**Bot buyruqlari** (panel ochilmasa):
+**Bot buyruqlari** (mini app ochilmasa ham ishlaydi):
 
 | Buyruq | Nima qiladi |
 |---|---|
-| `/start` | Panel tugmasi va yordam |
-| `/qurilmalar` | Ulangan telefonlar |
+| `/qosh @username` | Chatga ruxsat berish |
+| `/olib @username` | Ruxsatni olib tashlash |
 | `/royxat` | Har bir telefondagi oq ro‘yxat |
+| `/qurilmalar` | Ulangan telefonlar |
 | `/yangila` | Holatni telefonlardan qayta so‘rash |
+
+Bir nechta telefon ulangan bo‘lsa, `/qosh` qaysi biriga qo‘llashni
+tugmalar bilan so‘raydi.
+
+### Admin ham foydalanuvchi bo‘lganda
+
+Admin o‘z telefonida ham Qo‘rg‘on ishlatishi mumkin. Shunda ilova ham,
+odam ham **bitta chatdan** yozadi. Bot ularni yuboruvchi bo‘yicha emas,
+**xabar shakli** bo‘yicha ajratadi: protokolga kirsa — ilova, `/buyruq`
+bo‘lsa — odam. Shuning uchun ilova oddiy `/start` emas, `/start qorgon`
+yuboradi.
 
 ## Tuzilishi
 

@@ -17,7 +17,9 @@ export type AppMessage =
 export function parseAppMessage(text: string): AppMessage | null {
   const line = text.trim();
   if (line.length === 0) return null;
-  if (line === "/start") return { kind: "start" };
+  // Ilova "/start qorgon" yuboradi. Admin o'z qo'li bilan yozgan oddiy
+  // "/start" bu emas — u menyu so'ragan bo'ladi.
+  if (line === "/start qorgon") return { kind: "start" };
 
   const parts = line.split("|");
   const head = parts[0];

@@ -1,14 +1,19 @@
 /**
  * Bot mantiqi.
  *
- * Ikki xil odam bilan gaplashadi:
+ * Bot ikki xil manba bilan gaplashadi:
  *   - oila a'zosining telefonidagi Qo'rg'on ilovasi (protokol bo'yicha)
- *   - admin, ya'ni siz (tugmalar va mini app bilan)
+ *   - admin, ya'ni siz (buyruqlar va tugmalar bilan)
  *
- * Admin kimligi faqat ADMIN_ID bilan aniqlanadi.
+ * Muhim: admin ham o'z telefonida Qo'rg'on ishlatishi mumkin. Shunda ikkala
+ * oqim BITTA chatdan keladi. Shuning uchun "kim yozdi" degan savol yetarli
+ * emas — xabarning SHAKLI hal qiladi:
+ *
+ *   protokolga kirsa  -> ilova yozgan
+ *   /buyruq bo'lsa    -> odam yozgan
  */
 
-import { Bot, InlineKeyboard } from "grammy";
+import { Bot, InlineKeyboard, type CommandContext, type Context } from "grammy";
 import { config } from "./config.js";
 import { command, parseAppMessage } from "./protocol.js";
 import {
@@ -38,23 +43,33 @@ function memberTitle(chatId: number): string {
   return member.label || member.name || member.username || String(chatId);
 }
 
+async function notifyAdmin(text: string, keyboard?: InlineKeyboard): Promise<void> {
+  try {
+    await bot.api.sendMessage(
+      config.adminId,
+      text,
+      keyboard ? { reply_markup: keyboard } : undefined
+    );
+  } catch (error) {
+    console.error("adminga yuborib bo‘lmadi:", error);
+  }
+}
+
 /* ------------------------------------------------------------------
- * Oila a'zosining ilovasidan kelgan xabarlar
+ * 1) Ilovadan kelgan protokol xabarlari — kim yuborganidan qat'i nazar
  * ------------------------------------------------------------------ */
 
 bot.on("message:text", async (ctx, next) => {
   const chatId = ctx.chat.id;
-  const text = ctx.message.text;
+  const parsed = parseAppMessage(ctx.message.text);
 
-  // Admin xabarlari pastdagi handlerlarga o'tadi.
-  if (isAdmin(ctx.from?.id)) return next();
-
-  const parsed = parseAppMessage(text);
+  // Protokolga kirmasa — odam yozgan. Quyidagi buyruq handlerlariga o'tadi.
   if (!parsed) {
-    // Sozlashda kerak bo'ladi: ADMIN_ID ni bilmasangiz, botga yozing va
-    // shu qatordan id ni oling.
-    console.log(`protokolga kirmagan xabar: from.id=${ctx.from?.id} chat.id=${chatId}`);
-    return;
+    if (!isAdmin(ctx.from?.id)) {
+      // Sozlashda kerak: ADMIN_ID ni bilmasangiz shu qatordan oling.
+      console.log(`protokolga kirmagan xabar: from.id=${ctx.from?.id} chat.id=${chatId}`);
+    }
+    return next();
   }
 
   upsertMember(chatId, ctx.from?.first_name ?? "", ctx.from?.username ?? null);
@@ -62,10 +77,8 @@ bot.on("message:text", async (ctx, next) => {
 
   switch (parsed.kind) {
     case "start":
-      // Oila a'zosining chatiga oddiy matn yozilmaydi: ilova uni buyruq deb
-      // o'qishga urinadi. Faqat protokol xabarlari yuboriladi.
-      await notifyAdmin(`Yangi qurilma ulandi: ${memberTitle(chatId)}`);
-      // Darhol holatni so'raymiz, mini app bo'sh ko'rinmasligi uchun.
+      await notifyAdmin(`Qurilma ulandi: ${memberTitle(chatId)}`);
+      // Darhol holatni so'raymiz, ro'yxat bo'sh ko'rinmasligi uchun.
       await sendCommand(chatId, command.list());
       break;
 
@@ -96,26 +109,23 @@ bot.on("message:text", async (ctx, next) => {
   }
 });
 
-async function notifyAdmin(text: string, keyboard?: InlineKeyboard): Promise<void> {
-  try {
-    await bot.api.sendMessage(config.adminId, text, keyboard ? { reply_markup: keyboard } : undefined);
-  } catch (error) {
-    console.error("adminga yuborib bo‘lmadi:", error);
-  }
-}
-
 /* ------------------------------------------------------------------
- * Admin tugmalari
+ * 2) Admin tugmalari
  * ------------------------------------------------------------------ */
+
+function logById(id: number) {
+  return db.prepare("SELECT * FROM log WHERE id = ?").get(id) as
+    | { id: number; chat_id: number; dialog_id: string; who: string }
+    | undefined;
+}
 
 bot.callbackQuery(/^allow:(\d+)$/, async (ctx) => {
   if (!isAdmin(ctx.from.id)) return ctx.answerCallbackQuery("Ruxsat yo‘q.");
-  const id = Number(ctx.match[1]);
-  const row = recentLogById(id);
+  const row = logById(Number(ctx.match[1]));
   if (!row) return ctx.answerCallbackQuery("Topilmadi.");
 
   await sendCommand(row.chat_id, command.add(row.dialog_id));
-  markLogHandled(id);
+  markLogHandled(row.id);
   await ctx.answerCallbackQuery("Ruxsat berildi.");
   await ctx.editMessageReplyMarkup({ reply_markup: undefined });
 });
@@ -127,43 +137,63 @@ bot.callbackQuery(/^skip:(\d+)$/, async (ctx) => {
   await ctx.editMessageReplyMarkup({ reply_markup: undefined });
 });
 
-function recentLogById(id: number) {
-  return db.prepare("SELECT * FROM log WHERE id = ?").get(id) as
-    | { id: number; chat_id: number; dialog_id: string; who: string }
-    | undefined;
-}
+// Qaysi telefonga qo'llashni tanlash (bir nechta qurilma bo'lganda).
+bot.callbackQuery(/^apply:(add|del):(-?\d+):(.+)$/, async (ctx) => {
+  if (!isAdmin(ctx.from.id)) return ctx.answerCallbackQuery("Ruxsat yo‘q.");
+  const [, action, chatId, value] = ctx.match;
+  await sendCommand(
+    Number(chatId),
+    action === "add" ? command.add(value) : command.remove(value)
+  );
+  await ctx.answerCallbackQuery("Yuborildi.");
+  await ctx.editMessageText(
+    `${action === "add" ? "Qo‘shildi" : "Olib tashlandi"}: ${value}\n${memberTitle(Number(chatId))}`
+  );
+});
 
 /* ------------------------------------------------------------------
- * Admin buyruqlari
+ * 3) Admin buyruqlari
  * ------------------------------------------------------------------ */
+
+const HELP =
+  "Qo‘rg‘on boshqaruvi.\n\n" +
+  "/qosh @username — chatga ruxsat berish\n" +
+  "/olib @username — ruxsatni olib tashlash\n" +
+  "/royxat — har bir telefondagi oq ro‘yxat\n" +
+  "/qurilmalar — ulangan telefonlar\n" +
+  "/yangila — holatni telefonlardan qayta so‘rash\n\n" +
+  "@username o‘rniga raqamli ID yoki chatning aniq sarlavhasi ham bo‘ladi.";
 
 bot.command("start", async (ctx) => {
   if (!isAdmin(ctx.from?.id)) return;
   const keyboard = config.publicUrl
     ? new InlineKeyboard().webApp("Boshqaruv paneli", config.publicUrl)
     : undefined;
-  await ctx.reply(
-    "Qo‘rg‘on boshqaruvi.\n\n" +
-      "/qurilmalar — ulangan telefonlar\n" +
-      "/royxat — har bir telefondagi oq ro‘yxat\n" +
-      "/yangila — holatni telefonlardan qayta so‘rash",
-    keyboard ? { reply_markup: keyboard } : undefined
-  );
+  await ctx.reply(HELP, keyboard ? { reply_markup: keyboard } : undefined);
+});
+
+bot.command("help", async (ctx) => {
+  if (!isAdmin(ctx.from?.id)) return;
+  await ctx.reply(HELP);
 });
 
 bot.command("qurilmalar", async (ctx) => {
   if (!isAdmin(ctx.from?.id)) return;
   const members = listMembers();
   if (members.length === 0) {
-    return ctx.reply("Hali hech qanday telefon ulanmagan.");
+    return ctx.reply(
+      "Hali hech qanday telefon ulanmagan.\n\n" +
+        "Telefonga Qo‘rg‘on o‘rnatilgach, ilova botga o‘zi ulanadi."
+    );
   }
-  const lines = members.map((m) => `• ${m.label || m.name || m.username || m.chat_id} (${m.chat_id})`);
+  const lines = members.map((m) => `• ${memberTitle(m.chat_id)} (${m.chat_id})`);
   await ctx.reply(lines.join("\n"));
 });
 
 bot.command("yangila", async (ctx) => {
   if (!isAdmin(ctx.from?.id)) return;
   const members = listMembers();
+  if (members.length === 0) return ctx.reply("Hali hech qanday telefon ulanmagan.");
   for (const member of members) {
     await sendCommand(member.chat_id, command.list());
   }
@@ -177,7 +207,7 @@ bot.command("royxat", async (ctx) => {
 
   const blocks = members.map((m) => {
     const cached = getAllowlist(m.chat_id);
-    const title = m.label || m.name || String(m.chat_id);
+    const title = memberTitle(m.chat_id);
     if (!cached || cached.entries.length === 0) {
       return `${title}: ma’lumot yo‘q (/yangila)`;
     }
@@ -185,6 +215,43 @@ bot.command("royxat", async (ctx) => {
   });
   await ctx.reply(blocks.join("\n\n"));
 });
+
+/** /qosh va /olib — mini app ochilmaganda ham ishlaydi. */
+async function applyCommand(ctx: CommandContext<Context>, action: "add" | "del") {
+  if (!isAdmin(ctx.from?.id)) return;
+  const value = ctx.match.trim();
+  if (!value) {
+    return ctx.reply(
+      action === "add"
+        ? "Nimani qo‘shay? Masalan:\n/qosh @jahongir_on_blog"
+        : "Nimani olib tashlay? Masalan:\n/olib @jahongir_on_blog"
+    );
+  }
+
+  const members = listMembers();
+  if (members.length === 0) {
+    return ctx.reply("Hali hech qanday telefon ulanmagan.");
+  }
+
+  if (members.length === 1) {
+    const chatId = members[0].chat_id;
+    await sendCommand(chatId, action === "add" ? command.add(value) : command.remove(value));
+    return ctx.reply(
+      `${action === "add" ? "Qo‘shildi" : "Olib tashlandi"}: ${value}\n` +
+        `${memberTitle(chatId)}\n\nTelefonda bir necha soniyada ko‘rinadi.`
+    );
+  }
+
+  // Bir nechta telefon bor — qaysisiga qo'llashni so'raymiz.
+  const keyboard = new InlineKeyboard();
+  for (const member of members) {
+    keyboard.text(memberTitle(member.chat_id), `apply:${action}:${member.chat_id}:${value}`).row();
+  }
+  await ctx.reply(`"${value}" — qaysi telefonga?`, { reply_markup: keyboard });
+}
+
+bot.command("qosh", (ctx) => applyCommand(ctx, "add"));
+bot.command("olib", (ctx) => applyCommand(ctx, "del"));
 
 bot.catch((error) => {
   console.error("bot xatosi:", error);

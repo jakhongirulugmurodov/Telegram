@@ -27,7 +27,7 @@ har doim butun o‘tadi.
 
 | Xabar | Ma’nosi |
 |---|---|
-| `/start` | Ilova birinchi ishga tushdi. Telegram qoidasi: bot faqat o‘ziga `/start` bosgan odamga yoza oladi, shuning uchun buni ilova o‘zi yuboradi |
+| `/start qorgon` | Ilova birinchi ishga tushdi. Telegram qoidasi: bot faqat o‘ziga `/start` bosgan odamga yoza oladi, shuning uchun buni ilova o‘zi yuboradi. `qorgon` qo‘shimchasi kerak: admin o‘z qo‘li bilan yozgan oddiy `/start` dan ajralishi uchun |
 | `jurnal\|<dialogId>\|<kim>` | Ruxsatsiz odam yozdi. `<kim>` = `@username Ism`. **Xabar matni hech qachon yuborilmaydi** |
 | `ok\|list\|<e1>\|<e2>\|…` | Joriy oq ro‘yxat |
 | `ok\|+\|<qiymat>` | Qo‘shildi |

@@ -151,7 +151,11 @@ public class QorgonControl {
                     return;
                 }
                 setBotId(account, peerId);
-                send(account, peerId, "/start");
+                // "/start qorgon" — oddiy /start emas. Admin o'z qo'li bilan
+                // /start yozganda bot menyu ko'rsatadi; bu esa qurilmani
+                // ro'yxatga olish signali. Admin o'z telefonida ham Qo'rg'on
+                // ishlatganda ikkalasi aralashib ketmasligi uchun kerak.
+                send(account, peerId, "/start qorgon");
                 prefs(account).edit().putBoolean(KEY_STARTED, true).apply();
                 if (BuildVars.LOGS_ENABLED) {
                     FileLog.d("qorgon: botga /start yuborildi, id=" + peerId);
