@@ -32,9 +32,41 @@ export const bot = new Bot(config.botToken);
 
 const isAdmin = (id: number | undefined) => id === config.adminId;
 
+/**
+ * Aylanmadan himoya.
+ *
+ * Bot va ilova bitta chatda gaplashadi. Agar ikkalasi ham bir-birining
+ * xabariga javob bersa, cheksiz aylanma hosil bo'ladi. Mantiqiy xatolar
+ * tuzatilgan, lekin bu — oxirgi to'siq: bitta chatga daqiqasiga
+ * belgilangan sondan ko'p xabar ketmaydi.
+ */
+const SEND_LIMIT = 12;
+const SEND_WINDOW_MS = 60_000;
+const sendTimes = new Map<number, number[]>();
+
+function allowSend(chatId: number): boolean {
+  const now = Date.now();
+  const times = (sendTimes.get(chatId) ?? []).filter((t) => now - t < SEND_WINDOW_MS);
+  if (times.length >= SEND_LIMIT) {
+    sendTimes.set(chatId, times);
+    return false;
+  }
+  times.push(now);
+  sendTimes.set(chatId, times);
+  return true;
+}
+
+async function safeSend(chatId: number, text: string, extra?: object): Promise<void> {
+  if (!allowSend(chatId)) {
+    console.warn(`qorgon: ${chatId} ga xabar to'xtatildi (daqiqalik chegara).`);
+    return;
+  }
+  await bot.api.sendMessage(chatId, text, extra);
+}
+
 /** Ilovaga buyruq yuborish. API ham shu funksiyani ishlatadi. */
 export async function sendCommand(chatId: number, text: string): Promise<void> {
-  await bot.api.sendMessage(chatId, text);
+  await safeSend(chatId, text);
 }
 
 function memberTitle(chatId: number): string {
@@ -45,11 +77,7 @@ function memberTitle(chatId: number): string {
 
 async function notifyAdmin(text: string, keyboard?: InlineKeyboard): Promise<void> {
   try {
-    await bot.api.sendMessage(
-      config.adminId,
-      text,
-      keyboard ? { reply_markup: keyboard } : undefined
-    );
+    await safeSend(config.adminId, text, keyboard ? { reply_markup: keyboard } : undefined);
   } catch (error) {
     console.error("adminga yuborib bo‘lmadi:", error);
   }
@@ -104,7 +132,11 @@ bot.on("message:text", async (ctx, next) => {
       break;
 
     case "error":
-      await notifyAdmin(`${memberTitle(chatId)}: xato — ${parsed.reason}`);
+      // Adminga YOZILMAYDI. Admin o'z telefonida ham Qo'rg'on ishlatsa,
+      // admin chati ayni paytda qurilma chati bo'ladi: har bir javob
+      // ilovaga buyruq bo'lib qaytadi va cheksiz aylanma hosil bo'ladi.
+      // Eski APK'lar tanimagan matnga "xato" bilan javob beradi.
+      console.warn(`qorgon xato (${chatId}): ${parsed.reason}`);
       break;
   }
 });
