@@ -356,6 +356,14 @@ public class QorgonControl {
             return;
         }
 
-        send(account, botDialogId, "xato|noma'lum buyruq");
+        // Tanimagan matnga javob yozilmaydi. Bot ba'zan oddiy xabar yuborishi
+        // mumkin, javob bersak bot uni yana xato deb o'qiydi va aylanma hosil
+        // bo'ladi. Faqat protokolga o'xshagan, lekin buzuq buyruq xato beradi.
+        if (command.equalsIgnoreCase("ok") || command.startsWith("ok|") || command.startsWith("xato|")) {
+            return;
+        }
+        if (BuildVars.LOGS_ENABLED) {
+            FileLog.d("qorgon: tanimagan buyruq, e'tiborsiz qoldirildi");
+        }
     }
 }

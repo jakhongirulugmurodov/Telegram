@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Qo‘rg‘on</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{
+  --bg:#ffffff; --card:#f4f7f8; --line:#dde6e8; --ink:#0f2024; --muted:#5d727a;
+  --teal:#0f9b8e; --teal-dim:#e2f2f0; --warn:#b3451e;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0e1719; --card:#162328; --line:#26383e; --ink:#e6eff1; --muted:#90a7ae;
+  --teal:#3fc9ba; --teal-dim:#12312f; --warn:#ff8a5c;
+  color-scheme:dark;
+}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  padding:16px 16px 40px}
+h1{font-size:20px;margin:0 0 2px}
+.sub{color:var(--muted);font-size:13px;margin:0 0 20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;
+  padding:14px;margin-bottom:12px}
+.card h2{font-size:16px;margin:0 0 2px;display:flex;align-items:center;gap:8px}
+.meta{color:var(--muted);font-size:12px;margin:0 0 10px}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--teal-dim);
+  color:var(--teal);border-radius:999px;padding:4px 10px;font-size:13px;
+  margin:0 6px 6px 0;max-width:100%}
+.chip button{all:unset;cursor:pointer;opacity:.6;font-weight:700;padding:0 2px}
+.chip button:hover{opacity:1}
+.empty{color:var(--muted);font-size:13px;font-style:italic}
+.row{display:flex;gap:8px;margin-top:10px}
+input{flex:1;min-width:0;background:var(--bg);color:var(--ink);
+  border:1px solid var(--line);border-radius:8px;padding:9px 11px;font-size:14px}
+button.act{all:unset;cursor:pointer;background:var(--teal);color:#fff;
+  border-radius:8px;padding:9px 14px;font-size:14px;font-weight:600;text-align:center}
+button.ghost{all:unset;cursor:pointer;color:var(--teal);font-size:13px;
+  font-weight:600;padding:4px 0}
+.log{border-top:1px solid var(--line);padding:10px 0;font-size:14px}
+.log:last-child{border-bottom:0}
+.log .who{font-weight:600}
+.log .when{color:var(--muted);font-size:12px}
+.log .acts{margin-top:6px;display:flex;gap:14px}
+.done{opacity:.45}
+.err{background:#fdecec;color:#9b1c1c;border-radius:8px;padding:10px;font-size:13px;margin-bottom:12px}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .err{background:#3a1717;color:#ffb4b4}}
+</style>
+</head>
+<body>
+
+<h1>Qo‘rg‘on</h1>
+<p class="sub">Oila telefonlaridagi oq ro‘yxat</p>
+
+<div id="error" class="err" hidden></div>
+<div id="app"><p class="empty">Yuklanmoqda…</p></div>
+
+<script>
+const tg = window.Telegram?.WebApp;
+tg?.ready();
+tg?.expand();
+
+const initData = tg?.initData || "";
+const app = document.getElementById("app");
+const errorBox = document.getElementById("error");
+
+function showError(message) {
+  errorBox.textContent = message;
+  errorBox.hidden = false;
+}
+
+async function call(path, options = {}) {
+  const res = await fetch(path, {
+    ...options,
+    headers: { "Content-Type": "application/json", "X-Init-Data": initData, ...(options.headers || {}) },
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `xato ${res.status}`);
+  }
+  return res.json();
+}
+
+function when(ms) {
+  if (!ms) return "—";
+  const diff = Date.now() - ms;
+  const min = Math.round(diff / 60000);
+  if (min < 1) return "hozirgina";
+  if (min < 60) return min + " daqiqa oldin";
+  const hour = Math.round(min / 60);
+  if (hour < 24) return hour + " soat oldin";
+  return new Date(ms).toLocaleDateString("uz");
+}
+
+function escape(text) {
+  return String(text).replace(/[&<>"']/g, (ch) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+}
+
+let state = { members: [], log: [] };
+
+async function load() {
+  try {
+    state = await call("/api/state");
+    render();
+  } catch (e) {
+    showError("Ma’lumot olinmadi: " + e.message);
+    app.innerHTML = "";
+  }
+}
+
+function render() {
+  if (state.members.length === 0) {
+    app.innerHTML = `<div class="card"><p class="empty">Hali hech qanday telefon ulanmagan.
+      Qo‘rg‘on o‘rnatilgach, u botga o‘zi ulanadi.</p></div>`;
+    return;
+  }
+
+  const members = state.members.map((m) => {
+    const chips = m.allowlist.length
+      ? m.allowlist.map((entry) => `<span class="chip">${escape(entry)}
+          <button data-deny="${m.chatId}" data-value="${escape(entry)}" title="Olib tashlash">×</button>
+        </span>`).join("")
+      : `<p class="empty">Ro‘yxat bo‘sh — faqat Saved Messages ko‘rinadi.</p>`;
+
+    return `<div class="card">
+      <h2>${escape(m.title)}</h2>
+      <p class="meta">Oxirgi aloqa: ${when(m.seenAt)}
+        · ro‘yxat: ${m.allowlistUpdatedAt ? when(m.allowlistUpdatedAt) : "noma’lum"}</p>
+      ${chips}
+      <div class="row">
+        <input placeholder="@username yoki ID" data-input="${m.chatId}">
+        <button class="act" data-allow="${m.chatId}">Qo‘shish</button>
+      </div>
+      <button class="ghost" data-refresh="${m.chatId}">Telefondan yangilash</button>
+    </div>`;
+  }).join("");
+
+  const logs = state.log.length
+    ? state.log.map((l) => {
+        const member = state.members.find((m) => m.chatId === l.chat_id);
+        return `<div class="log ${l.handled ? "done" : ""}">
+          <div class="who">${escape(l.who)}</div>
+          <div class="when">${escape(member?.title ?? l.chat_id)} · ${when(l.at)}</div>
+          ${l.handled ? "" : `<div class="acts">
+            <button class="ghost" data-allow-log="${l.id}"
+              data-chat="${l.chat_id}" data-dialog="${escape(l.dialog_id)}">Ruxsat berish</button>
+          </div>`}
+        </div>`;
+      }).join("")
+    : `<p class="empty">Hozircha hech kim yozmagan.</p>`;
+
+  app.innerHTML = members + `<div class="card"><h2>Jurnal</h2>
+    <p class="meta">Begona yozganda shu yerda ko‘rinadi. Xabar matni saqlanmaydi.</p>
+    ${logs}</div>`;
+}
+
+app.addEventListener("click", async (event) => {
+  const target = event.target.closest("button");
+  if (!target) return;
+  errorBox.hidden = true;
+
+  try {
+    if (target.dataset.allow) {
+      const chatId = Number(target.dataset.allow);
+      const input = app.querySelector(`input[data-input="${chatId}"]`);
+      const value = input.value.trim();
+      if (!value) return;
+      await call("/api/allow", { method: "POST", body: JSON.stringify({ chatId, value }) });
+      input.value = "";
+      tg?.HapticFeedback?.notificationOccurred("success");
+      setTimeout(load, 1500);
+    } else if (target.dataset.deny) {
+      await call("/api/deny", {
+        method: "POST",
+        body: JSON.stringify({ chatId: Number(target.dataset.deny), value: target.dataset.value }),
+      });
+      setTimeout(load, 1500);
+    } else if (target.dataset.refresh) {
+      await call("/api/refresh", {
+        method: "POST",
+        body: JSON.stringify({ chatId: Number(target.dataset.refresh) }),
+      });
+      setTimeout(load, 2000);
+    } else if (target.dataset.allowLog) {
+      await call("/api/allow", {
+        method: "POST",
+        body: JSON.stringify({ chatId: Number(target.dataset.chat), value: target.dataset.dialog }),
+      });
+      setTimeout(load, 1500);
+    }
+  } catch (e) {
+    showError(e.message);
+  }
+});
+
+load();
+setInterval(load, 20000);
+</script>
+</body>
+</html>

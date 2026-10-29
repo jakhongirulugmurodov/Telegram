@@ -8,6 +8,8 @@ on:
     branches: [qorgon]
     paths-ignore:
       - '**.md'
+      # Bot alohida loyiha — uning o'zgarishi APK'ni qayta yig'ishga arzimaydi.
+      - 'bot/**'
 
 jobs:
   apk:

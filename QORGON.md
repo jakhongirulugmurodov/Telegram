@@ -165,3 +165,29 @@ filtri papkalarni ham qamrab olgan, alohida tuzatish kerak bo‘lmadi.
 Narxi: ruxsat berilgan chatlarning o‘qilmagan belgilari ham ko‘rinmaydi.
 2-bosqichda oq ro‘yxat dinamik bo‘lgach, faqat ruxsatlilar bo‘yicha
 to‘g‘ri hisob qo‘shiladi.
+
+---
+
+## 2-bosqich: bot boshqaruvi
+
+Oq ro‘yxat APK ichida qotib qolmaydi — `@qorgonbyon_bot` orqali masofadan
+o‘zgaradi. Chat qo‘shilsa, telefonda bir necha soniyada paydo bo‘ladi.
+
+**Firebase ishlatilmadi.** Ilovaning o‘zi Telegram mijozi, shuning uchun
+bot bilan shaxsiy chat tayyor transport. Yangi tizim qo‘shilmagani uchun
+yangi teshik joyi ham ochilmadi, `google-services.json` ga tegilmadi.
+
+| Qism | Qayerda |
+|---|---|
+| Ilova tomoni | `QorgonControl.java` |
+| Protokol | `bot/SPEC.md` — **ikkala tomon uchun shartnoma** |
+| Bot va mini app | `bot/` — grammY + SQLite, Docker |
+
+Bot `bot/**` o‘zgarishida APK qayta yig‘ilmaydi (`paths-ignore`).
+
+### Bilib qo‘yish kerak
+
+- Javob kafolatlanmagan: telefon o‘chiq bo‘lsa, buyruq Telegram’da turadi.
+- Haqiqat manbai — telefon. Bot faqat keshlaydi, shuning uchun panelda
+  «Telefondan yangilash» tugmasi bor.
+- Jurnalda xabar matni yo‘q — faqat kim va qachon.

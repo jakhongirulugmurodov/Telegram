@@ -1,0 +1,12 @@
+services:
+  qorgon-bot:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    # Ma'lumot konteyner ichida emas, host'da turadi — yangilashda yo'qolmaydi.
+    volumes:
+      - ./data:/app/data
+    ports:
+      # Faqat localhost. Tashqariga chiqarish reverse proxy (Caddy/nginx)
+      # orqali qilinadi, chunki Telegram mini app https talab qiladi.
+      - "127.0.0.1:8080:8080"
