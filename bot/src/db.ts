@@ -29,7 +29,7 @@ db.exec(`
   -- bu faqat kesh — shuning uchun vaqti ham saqlanadi.
   CREATE TABLE IF NOT EXISTS allowlist_cache (
     chat_id     INTEGER PRIMARY KEY,
-    entries     TEXT NOT NULL DEFAULT '',   -- '\n' bilan ajratilgan
+    entries     TEXT NOT NULL DEFAULT '',   -- har bir yozuv alohida qatorda
     updated_at  INTEGER NOT NULL
   );
 

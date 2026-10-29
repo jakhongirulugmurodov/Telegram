@@ -14,9 +14,17 @@ serve({ fetch: api.fetch, port: config.port }, (info) => {
   }
 });
 
-bot.start({
-  onStart: (info) => console.log(`bot ishga tushdi: @${info.username}`),
-});
+bot
+  .start({
+    onStart: (info) => console.log(`bot ishga tushdi: @${info.username}`),
+  })
+  .catch((error) => {
+    // Eng ko'p uchraydigan sabab — BOT_TOKEN xato. Buni jimgina
+    // qoldirmaymiz, aks holda bot "ishlayapti"dek ko'rinadi.
+    console.error("bot ishga tushmadi. BOT_TOKEN to'g'rimi?");
+    console.error(error instanceof Error ? error.message : error);
+    process.exit(1);
+  });
 
 const stop = async () => {
   await bot.stop();
