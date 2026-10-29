@@ -20,6 +20,15 @@ olmaydi.
 ## Ishga tushirish
 
 ```bash
+./setup.sh
+```
+
+Skript token va id ni so‘raydi, `.env` ni yozadi va konteynerni
+ishga tushiradi. Token terminalda ko‘rinmaydi.
+
+Qo‘lda qilmoqchi bo‘lsangiz:
+
+```bash
 cp .env.example .env     # BOT_TOKEN va ADMIN_ID ni to'ldiring
 docker compose up -d --build
 docker compose logs -f
