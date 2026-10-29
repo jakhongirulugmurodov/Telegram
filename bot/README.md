@@ -25,8 +25,9 @@ docker compose up -d --build
 docker compose logs -f
 ```
 
-`ADMIN_ID` ni bilmasangiz: botni ishga tushiring, unga Telegram’dan yozing,
-logda `from.id` ko‘rinadi.
+`ADMIN_ID` ni bilmasangiz, eng tezi — Telegram’da `@userinfobot` ga yozing,
+u sizning id’ingizni qaytaradi. Boshqa yo‘l: botni ishga tushiring, unga
+yozing, `docker compose logs` da `from.id=...` ko‘rinadi.
 
 ### Mini app uchun https
 
