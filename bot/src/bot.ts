@@ -50,7 +50,12 @@ bot.on("message:text", async (ctx, next) => {
   if (isAdmin(ctx.from?.id)) return next();
 
   const parsed = parseAppMessage(text);
-  if (!parsed) return;
+  if (!parsed) {
+    // Sozlashda kerak bo'ladi: ADMIN_ID ni bilmasangiz, botga yozing va
+    // shu qatordan id ni oling.
+    console.log(`protokolga kirmagan xabar: from.id=${ctx.from?.id} chat.id=${chatId}`);
+    return;
+  }
 
   upsertMember(chatId, ctx.from?.first_name ?? "", ctx.from?.username ?? null);
   touchMember(chatId);
