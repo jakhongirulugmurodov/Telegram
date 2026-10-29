@@ -16,6 +16,11 @@ serve({ fetch: api.fetch, port: config.port }, (info) => {
 
 bot
   .start({
+    // Qayta ishga tushganda Telegram'da to'planib qolgan eski xabarlar
+    // o'qilmaydi. Aks holda soatlab yig'ilgan jurnal yozuvlari birdan
+    // adminga oqib keladi. Ilova holatini baribir /yangila bilan
+    // qayta so'rash mumkin.
+    drop_pending_updates: true,
     onStart: (info) => console.log(`bot ishga tushdi: @${info.username}`),
   })
   .catch((error) => {

@@ -30,7 +30,10 @@ public class QorgonControl {
     private static final String PREFS = "qorgon";
     private static final String KEY_ALLOW = "allow";
     private static final String KEY_BOT_ID = "bot_id";
-    private static final String KEY_STARTED = "started";
+    // Versiyalangan: eski APK oddiy "/start" yuborib "started" ni true qilgan.
+    // Protokol o'zgarganda kalit nomi ham o'zgaradi, shunda ilova yangi
+    // ko'rinishdagi /start ni qayta yuboradi.
+    private static final String KEY_STARTED = "started_v2";
 
     /** Bitta chat haqida jurnal qatori shu oraliqda bir marta yuboriladi. */
     private static final long LOG_COOLDOWN_MS = 60L * 60L * 1000L;
