@@ -84,9 +84,28 @@ else
   say "Yig‘ilmoqda…"
   npm run build
 
-  # Eski nusxa ishlab tursa, to‘xtatamiz.
+  # Eski nusxalarni to‘xtatamiz.
+  # bot.pid yetarli emas: avvalgi ishga tushirishlardan yetim jarayon
+  # qolgan bo‘lsa, u portni band qilib turadi va yangisi ko‘tarilmaydi
+  # (EADDRINUSE). Shuning uchun portni egallab turgan jarayon ham
+  # qidiriladi.
   if [ -f bot.pid ] && kill -0 "$(cat bot.pid)" 2>/dev/null; then
     kill "$(cat bot.pid)" 2>/dev/null || true
+  fi
+  PORT_VALUE=$(grep -E '^PORT=' .env | cut -d= -f2 | tr -d '[:space:]')
+  PORT_VALUE=${PORT_VALUE:-8080}
+  if command -v lsof >/dev/null 2>&1; then
+    OLD_PIDS=$(lsof -ti "tcp:$PORT_VALUE" 2>/dev/null || true)
+    if [ -n "$OLD_PIDS" ]; then
+      warn "$PORT_VALUE portini band qilgan eski jarayon to‘xtatilmoqda."
+      echo "$OLD_PIDS" | xargs kill 2>/dev/null || true
+    fi
+  fi
+  sleep 2
+  # Hali ham tirik bo‘lsa, majburan.
+  if command -v lsof >/dev/null 2>&1; then
+    OLD_PIDS=$(lsof -ti "tcp:$PORT_VALUE" 2>/dev/null || true)
+    [ -n "$OLD_PIDS" ] && echo "$OLD_PIDS" | xargs kill -9 2>/dev/null || true
     sleep 1
   fi
 
